@@ -5,5 +5,5 @@ function randomizeTime(time: number, perc: number = 0.5) {
   }
 }
 
-export const getTitleTime = randomizeTime(5000)
-export const getBodyTime = randomizeTime(60000)
+export const getTitleTime = randomizeTime(1000)
+export const getBodyTime = randomizeTime(1000 * 60 * 1)
