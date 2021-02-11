@@ -12,6 +12,8 @@ const entitiesDict = {
   '/': '&sol;',
 }
 
+const MULTIPLIER_THRESHOLD = 0.4
+
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
@@ -20,13 +22,33 @@ function replaceWithEntities(letter: string) {
   return entitiesDict[letter] || letter
 }
 
-async function writeText(res: express.Response, text: string, time: number) {
+function interpolate(from: number, to: number, value: number): number {
+  return from + (to - from) * value
+}
+
+function getMultiplier(value: number): number {
+  if (value < MULTIPLIER_THRESHOLD) return interpolate(0.5, 10, value)
+  return interpolate(0.5, 10, value) + value / (1 - value)
+}
+
+async function writeText(
+  res: express.Response,
+  text: string,
+  timeForLetter: number,
+  totalLetters: number,
+  usedLetters: number,
+) {
   const letters = text.split('').map(replaceWithEntities)
-  const timeForLetter = time / letters.length
-  for (const letter of letters) {
+  for (const idx in letters) {
+    const letterIdx = Number(idx)
+    const letter = letters[letterIdx]
+    const totalUsedPart = (letterIdx + usedLetters) / totalLetters
+    const multiplier = getMultiplier(totalUsedPart)
+    console.log('multiplier', multiplier, totalUsedPart)
     res.write(letter)
-    await sleep(timeForLetter)
+    await sleep(timeForLetter * multiplier)
   }
+  return letters.length
 }
 
 function getElementLength(elem: Element) {
@@ -34,36 +56,42 @@ function getElementLength(elem: Element) {
 }
 
 export async function writeTitle(res: express.Response, title: string, time: number) {
+  const letters = title.split('').map(replaceWithEntities)
+  const timeForLetter = time / letters.length
   res.write(`<title>`)
-  await writeText(res, title, time)
+  for (const letter of letters) {
+    res.write(letter)
+    await sleep(timeForLetter)
+  }
   res.write(`</title>`)
 }
 
 export async function writeContent(res: express.Response, content: Content, time: number) {
   const totalContentLength = sumBy(content, getElementLength)
-  console.log('totalContentLength', totalContentLength)
   const timeForLetter = time / totalContentLength
+  let usedLetters = 0
   for (const [tag, text] of content) {
     const fakeTagClass = `s_${v4().split('-').join('')}`
     const fakeTagStyle = `<style> .${fakeTagClass} { display: none } </style>`
 
     res.write(`<span class=${fakeTagClass}>`)
-    await writeText(res, `<${tag}>`, timeForLetter * (tag.length + 2))
+    usedLetters += await writeText(res, `<${tag}>`, timeForLetter, totalContentLength, usedLetters)
+
     res.write(`</span>`)
 
     res.write(`<${tag}>`)
-    await writeText(res, text, timeForLetter * text.length)
+    usedLetters += await writeText(res, text, timeForLetter, totalContentLength, usedLetters)
     res.write(`</${tag}>`)
 
     res.write(`<span class=${fakeTagClass}>`)
-    await writeText(res, `</${tag}>`, timeForLetter * (tag.length + 3))
+    usedLetters += await writeText(res, `</${tag}>`, timeForLetter, totalContentLength, usedLetters)
     res.write(`</span>`)
 
     res.write(fakeTagStyle)
   }
 }
 
-export async function writeStyle(res: express.Response, style: Style, timeForStyle: number) {
+export async function writeStyle(res: express.Response, style: Style, time: number) {
   const allStyles: string[] = []
   for (const [selector, styles] of Object.entries(style)) {
     for (const [styleKey, styleValue] of Object.entries(styles)) {
@@ -72,6 +100,7 @@ export async function writeStyle(res: express.Response, style: Style, timeForSty
     }
   }
   const shuffled = shuffle(allStyles)
+  const timeForStyle = time / shuffled.length
   for (const styleString of shuffled) {
     res.write(styleString)
     await sleep(timeForStyle)
