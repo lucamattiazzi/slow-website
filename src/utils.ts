@@ -44,7 +44,6 @@ async function writeText(
     const letter = letters[letterIdx]
     const totalUsedPart = (letterIdx + usedLetters) / totalLetters
     const multiplier = getMultiplier(totalUsedPart)
-    console.log('multiplier', multiplier, totalUsedPart)
     res.write(letter)
     await sleep(timeForLetter * multiplier)
   }

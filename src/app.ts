@@ -6,7 +6,7 @@ import template from '../content.json'
 
 config()
 
-const { PORT } = process.env
+const { PORT = 4000 } = process.env
 
 export const server = express()
 
