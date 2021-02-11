@@ -1,6 +1,6 @@
 import express from 'express'
 import { config } from 'dotenv'
-import { writeContent, writeTitle, writeStyle, Content, Style } from './utils'
+import { writeContent, writeTitle, writeStyle, Content, Style, sleep } from './utils'
 import { getBodyTime, getTitleTime } from './times'
 import template from '../content.json'
 
@@ -20,6 +20,12 @@ server.get('/', async (req: express.Request, res: express.Response) => {
   const promises = [writeContent(res, content, bodyTime), writeStyle(res, style, bodyTime)]
   await Promise.all(promises)
   res.end()
+})
+
+server.get('/test', async (req: express.Request, res: express.Response) => {
+  res.write('test...')
+  await sleep(10000)
+  res.end('done!')
 })
 
 export const port = PORT

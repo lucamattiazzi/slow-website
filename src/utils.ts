@@ -14,7 +14,7 @@ const entitiesDict = {
 
 const MULTIPLIER_THRESHOLD = 0.4
 
-function sleep(ms: number) {
+export function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
 
